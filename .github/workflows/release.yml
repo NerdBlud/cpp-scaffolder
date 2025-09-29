@@ -1,0 +1,67 @@
+name: Release Prebuilt Binaries
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Setup Xcode (macOS)
+        if: matrix.os == 'macos-latest'
+        run: sudo xcode-select --install || true
+
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-msbuild@v1
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      # Linux
+      - name: Package Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir release
+          cp build/cpp_scaffolder release/
+          tar -czf cpp-scaffolder-linux.tar.gz -C release cpp_scaffolder
+
+      # macOS
+      - name: Package macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir release
+          cp build/cpp_scaffolder release/
+          tar -czf cpp-scaffolder-macos.tar.gz -C release cpp_scaffolder
+
+      # Windows
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir release
+          copy build\Release\cpp_scaffolder.exe release\
+          powershell Compress-Archive -Path release\cpp_scaffolder.exe -DestinationPath cpp-scaffolder-windows.zip
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.tar.gz
+            *.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
