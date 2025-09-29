@@ -15,6 +15,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # ------------------------------
+      # Install dependencies
+      # ------------------------------
       - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
@@ -27,41 +30,48 @@ jobs:
         if: matrix.os == 'windows-latest'
         uses: actions/setup-msbuild@v1
 
+      # ------------------------------
+      # Configure & build
+      # ------------------------------
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      # Linux
+      # ------------------------------
+      # Package binaries
+      # ------------------------------
       - name: Package Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir release
-          cp build/cpp_scaffolder release/
-          tar -czf cpp-scaffolder-linux.tar.gz -C release cpp_scaffolder
+          cp build/cpp-scaffolder release/
+          tar -czf cpp-scaffolder-v${{ github.ref_name }}-linux.tar.gz -C release cpp-scaffolder
 
-      # macOS
       - name: Package macOS
         if: matrix.os == 'macos-latest'
         run: |
           mkdir release
-          cp build/cpp_scaffolder release/
-          tar -czf cpp-scaffolder-macos.tar.gz -C release cpp_scaffolder
+          cp build/cpp-scaffolder release/
+          tar -czf cpp-scaffolder-v${{ github.ref_name }}-macos.tar.gz -C release cpp-scaffolder
 
-      # Windows
       - name: Package Windows
         if: matrix.os == 'windows-latest'
         run: |
           mkdir release
-          copy build\Release\cpp_scaffolder.exe release\
-          powershell Compress-Archive -Path release\cpp_scaffolder.exe -DestinationPath cpp-scaffolder-windows.zip
+          copy build\Release\cpp-scaffolder.exe release\
+          powershell Compress-Archive -Path release\cpp-scaffolder.exe -DestinationPath cpp-scaffolder-v${{ github.ref_name }}-windows.zip
 
-      - name: Upload Release Asset
+      # ------------------------------
+      # Upload to release
+      # ------------------------------
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            *.tar.gz
-            *.zip
+            cpp-scaffolder-v${{ github.ref_name }}-linux.tar.gz
+            cpp-scaffolder-v${{ github.ref_name }}-macos.tar.gz
+            cpp-scaffolder-v${{ github.ref_name }}-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

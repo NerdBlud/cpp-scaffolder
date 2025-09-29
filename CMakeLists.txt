@@ -1,75 +1,77 @@
-cmake_minimum_required(VERSION 3.16)
+name: Release Prebuilt Binaries
 
-project(cpp_scaffolder
-    VERSION 0.1.0
-    DESCRIPTION "A modern C++ project scaffolder CLI"
-    LANGUAGES CXX
-)
+on:
+  release:
+    types: [created]
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+jobs:
+  build-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
-# ------------------------------
-# Dependencies (Catch2 for tests)
-# ------------------------------
-include(cmake/CPM.cmake)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-CPMAddPackage(
-    NAME Catch2
-    GITHUB_REPOSITORY catchorg/Catch2
-    VERSION 3.4.0
-)
+      # ------------------------------
+      # Install dependencies
+      # ------------------------------
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
 
-# ------------------------------
-# Library target (scaffolder core logic)
-# ------------------------------
-add_library(${PROJECT_NAME}_lib
-    src/generator.cpp
-    src/cli.cpp
-)
+      - name: Setup Xcode (macOS)
+        if: matrix.os == 'macos-latest'
+        run: sudo xcode-select --install || true
 
-target_include_directories(${PROJECT_NAME}_lib
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-)
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-msbuild@v1
 
-target_compile_features(${PROJECT_NAME}_lib PUBLIC cxx_std_20)
+      # ------------------------------
+      # Configure & build
+      # ------------------------------
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-if (MSVC)
-    target_compile_options(${PROJECT_NAME}_lib PRIVATE /W4 /permissive-)
-else()
-    target_compile_options(${PROJECT_NAME}_lib PRIVATE -Wall -Wextra -Wpedantic)
-endif()
+      - name: Build
+        run: cmake --build build --config Release --parallel
 
-# ------------------------------
-# Executable target
-# ------------------------------
-add_executable(${PROJECT_NAME}
-    src/main.cpp
-)
+      # ------------------------------
+      # Package binaries
+      # ------------------------------
+      - name: Package Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir release
+          cp build/cpp-scaffolder release/
+          tar -czf cpp-scaffolder-v${{ github.ref_name }}-linux.tar.gz -C release cpp-scaffolder
 
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        ${PROJECT_NAME}_lib
-)
+      - name: Package macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir release
+          cp build/cpp-scaffolder release/
+          tar -czf cpp-scaffolder-v${{ github.ref_name }}-macos.tar.gz -C release cpp-scaffolder
 
-# ------------------------------
-# Tests
-# ------------------------------
-enable_testing()
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir release
+          copy build\Release\cpp-scaffolder.exe release\
+          powershell Compress-Archive -Path release\cpp-scaffolder.exe -DestinationPath cpp-scaffolder-v${{ github.ref_name }}-windows.zip
 
-add_executable(${PROJECT_NAME}_tests
-    tests/test_cli.cpp
-)
-
-target_link_libraries(${PROJECT_NAME}_tests
-    PRIVATE
-        ${PROJECT_NAME}_lib
-        Catch2::Catch2WithMain
-)
-
-include(CTest)
-include(Catch)
-catch_discover_tests(${PROJECT_NAME}_tests)
+      # ------------------------------
+      # Upload to release
+      # ------------------------------
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            cpp-scaffolder-v${{ github.ref_name }}-linux.tar.gz
+            cpp-scaffolder-v${{ github.ref_name }}-macos.tar.gz
+            cpp-scaffolder-v${{ github.ref_name }}-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
