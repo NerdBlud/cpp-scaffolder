@@ -40,31 +40,38 @@ jobs:
         run: cmake --build build --config Release --parallel
 
       # ------------------------------
-      # Package binaries
+      # Package Linux
       # ------------------------------
       - name: Package Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir release
+          mkdir -p release
           cp build/cpp-scaffolder release/
           tar -czf cpp-scaffolder-v${{ github.ref_name }}-linux.tar.gz -C release cpp-scaffolder
 
+      # ------------------------------
+      # Package macOS
+      # ------------------------------
       - name: Package macOS
         if: matrix.os == 'macos-latest'
         run: |
-          mkdir release
+          mkdir -p release
           cp build/cpp-scaffolder release/
           tar -czf cpp-scaffolder-v${{ github.ref_name }}-macos.tar.gz -C release cpp-scaffolder
 
+      # ------------------------------
+      # Package Windows
+      # ------------------------------
       - name: Package Windows
         if: matrix.os == 'windows-latest'
+        shell: powershell
         run: |
           mkdir release
-          copy build\Release\cpp-scaffolder.exe release\
-          powershell Compress-Archive -Path release\cpp-scaffolder.exe -DestinationPath cpp-scaffolder-v${{ github.ref_name }}-windows.zip
+          Copy-Item -Path "build/Release/cpp-scaffolder.exe" -Destination "release/"
+          Compress-Archive -Path "release/cpp-scaffolder.exe" -DestinationPath "cpp-scaffolder-v${{ github.ref_name }}-windows.zip"
 
       # ------------------------------
-      # Upload to release
+      # Upload Release Assets
       # ------------------------------
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
