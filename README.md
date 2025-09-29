@@ -1,4 +1,4 @@
-# cpp-scaffolder by nerdblud.
+# cpp-scaffolder by nerdblud
 
 **A modern C++ project scaffolder — automatically generates clean, ready-to-build C++ projects with CMake, tests, and CI/CD.**
 
@@ -7,18 +7,15 @@
 ## 🚀 Features
 
 * Generates a **full C++ project structure**:
-
   * `src/` for source code
   * `include/` for headers
   * `tests/` for unit tests (Catch2, GoogleTest, or doctest)
   * `examples/` for demo projects
 * **Supports multiple build systems**: CMake, Meson, Bazel
 * **Automates dependency management**:
-
   * `CPM.cmake` for modern CMake projects
   * Optional `vcpkg` integration
 * **Optional CI/CD templates**:
-
   * GitHub Actions or GitLab CI
 * Adds `.clang-format` and `.clang-tidy` for consistent code style
 * Easy install/export support for libraries
@@ -28,6 +25,7 @@
 ## 📂 Generated Project Layout Example
 
 ```
+
 my_project/
 ├── CMakeLists.txt
 ├── src/
@@ -46,7 +44,8 @@ my_project/
 ├── .gitignore
 ├── LICENSE
 └── vcpkg.json
-```
+
+````
 
 ---
 
@@ -63,7 +62,7 @@ cmake --build build
 
 # Run scaffolder to create a new project
 ./build/cpp-scaffolder create my_project --build=cmake --tests=catch2 --ci=github
-```
+````
 
 ---
 
@@ -96,6 +95,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.
-
----
-
